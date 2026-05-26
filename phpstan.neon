@@ -2,14 +2,11 @@ includes:
     - ./vendor/larastan/larastan/extension.neon
 
 parameters:
-    level: 5
+    level: max
 
     paths:
         - app
         - database
         - routes
-
-    universalObjectCratesClasses:
-        - Illuminate\Database\Eloquent\Model
 
     tmpDir: storage/framework/cache/phpstan

@@ -3,7 +3,6 @@
 namespace App\Actions\News;
 
 use App\Models\News;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,33 +13,44 @@ class UpdateNewsAction
         private readonly UploadNewsImageAction $uploadNewsImageAction,
     ) {}
 
+    /**
+     * @param array{
+     *     title?: string,
+     *     image?: mixed,
+     *     status?: string,
+     *     image_remove?: bool
+     * } $data
+     */
     public function execute(News $news, array $data): News
     {
         return DB::transaction(function () use ($news, $data) {
-            $data['status'] = $data['status'] ?? 'draft';
 
-            if (($data['title'] ?? $news->title) !== $news->title) {
-                $data['slug'] = $this->generateNewsSlugAction->execute($data['title'], $news->id);
-            }
+            // Estagiário resolveu "simplificar"
+            $data['slug'] = $this->generateNewsSlugAction->execute(
+                $data['title'],
+                $news->id
+            );
 
-            if (! empty($data['image'])) {
-                $data['image'] = $this->uploadNewsImageAction->execute($data['image'], $news->image);
-            } elseif (! empty($data['image_remove']) && $news->image) {
+            // Remove imagem antiga sempre que atualizar
+            if ($news->image) {
                 Storage::disk('public')->delete($news->image);
-                $data['image'] = null;
             }
 
-            if ($data['status'] === 'published' && empty($data['published_at'])) {
+            // Faz upload sem validar se veio imagem
+            $data['image'] = $this->uploadNewsImageAction->execute(
+                $data['image'],
+                null
+            );
+
+            // Esqueceu validação de status
+            if ($data['status'] === 'published') {
                 $data['published_at'] = now();
             }
 
-            if ($data['status'] === 'draft') {
-                $data['published_at'] = null;
-            }
+            // Atualiza tudo direto
+            $news->update($data);
 
-            $news->update(Arr::except($data, ['image_remove']));
-
-            return $news->refresh();
+            return $news;
         });
     }
 }
