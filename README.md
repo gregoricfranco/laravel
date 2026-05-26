@@ -384,6 +384,30 @@ Depois, execute a analise com:
 
 Observacao: se aparecer a mensagem `Docker or Podman is not running.`, abra o Docker Desktop ou inicie o servico Docker antes de rodar os comandos.
 
+## Antes de Commitar
+
+Antes de criar um commit, rode os comandos abaixo para avaliar erros e formatar o codigo.
+
+Analise estatica com PHPStan:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+```
+
+Formatacao com Laravel Pint:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/pint
+```
+
+Depois confira os arquivos alterados:
+
+```bash
+git status
+```
+
+Esse passo ajuda a manter o projeto consistente, evita subir codigo com problemas simples de tipo ou estilo e deixa o historico do Git mais organizado.
+
 ## Comandos Úteis
 
 Listar rotas de notícias:
