@@ -1,532 +1,197 @@
-# Laravel News CRUD - Estudo de Qualidade e Testes
+# Laravel News CRUD
 
-Este projeto é um estudo em Laravel para praticar arquitetura, organização de código e fluxo de qualidade antes de evoluir para uma suíte completa de testes.
+Projeto de estudo em Laravel 13 com foco em qualidade de código e boas práticas de desenvolvimento. Implementa um CRUD de notícias usando **Action Pattern** — controllers finos, regras de negócio isoladas em Actions e um pipeline de qualidade que bloqueia código problemático antes de chegar na `main`.
 
-O sistema implementa um CRUD de notícias/artigos usando **Action Pattern**. A ideia é manter controllers finos, regras de negócio em Actions e uma base preparada para PHPUnit, Pest, Playwright e Selenium.
+> A ideia não é só o CRUD funcionar. É demonstrar como PHPStan, Pint, pre-commit hooks e GitHub Actions trabalham juntos para manter o código saudável ao longo do tempo.
 
-> Este projeto é didático. As ferramentas de qualidade existem para demonstrar como PHPStan, Pint, hooks de Git e GitHub Actions ajudam a impedir que código problemático avance sem visibilidade.
-
-## Objetivo
-
-O objetivo não é apenas criar o CRUD, mas estudar um fluxo de desenvolvimento com qualidade:
-
-- Separar responsabilidades com Action Pattern
-- Validar entrada com Form Requests
-- Manter regras de negócio fora do controller
-- Usar análise estática com PHPStan/Larastan
-- Usar formatação com Laravel Pint
-- Bloquear commits quando checks falharem
-- Rodar validações no GitHub Actions
-- Preparar o projeto para testes automatizados futuros
+---
 
 ## Stack
 
 - PHP 8.3+
 - Laravel 13
-- Laravel Sail
-- MySQL no ambiente local com Sail
-- SQLite no GitHub Actions
-- Blade
-- Tailwind CSS via CDN
-- PHPStan/Larastan
+- Laravel Sail (Docker)
+- MySQL (local) / SQLite (CI)
+- Blade + Tailwind CSS via CDN
+- PHPStan + Larastan
 - Laravel Pint
 - PHPUnit
 
-## Comandos Principais
-
-Subir o ambiente:
-
-```bash
-./vendor/bin/sail up -d
-```
-
-Instalar dependências PHP:
-
-```bash
-./vendor/bin/sail composer install
-```
-
-Preparar banco e storage:
-
-```bash
-./vendor/bin/sail artisan migrate --seed
-./vendor/bin/sail artisan storage:link
-```
-
-Rodar todos os checks de qualidade:
-
-```bash
-make check
-```
-
-Rodar cada check separadamente:
-
-```bash
-make lint
-make analyse
-make test
-```
-
-Ativar o hook de Git que bloqueia commits quebrados:
-
-```bash
-git config core.hooksPath .github/.githooks
-```
-
-Instalar dependências JavaScript, incluindo Commitlint:
-
-```bash
-npm install
-```
-
-Fluxo recomendado antes de abrir PR:
-
-```bash
-make check
-git status
-git add .
-git commit -m "feat: describe the change"
-git push
-```
-
-Padrão de mensagem recomendado para commits:
-
-```text
-feat: add news creation flow
-fix: correct image upload handling
-docs: update project documentation
-test: add news feature tests
-chore: update project tooling
-```
-
-Exemplo de mensagem bloqueada pelo Commitlint:
-
-```text
-arrumei umas coisas
-```
-
-## Funcionalidades do CRUD
-
-- Listagem de notícias
-- Criação de notícia
-- Edição de notícia
-- Exclusão de notícia
-- Busca por título
-- Filtro por status
-- Paginação
-- Upload de imagem
-- Preview de imagem no formulário
-- Mensagens de sucesso e erro
-- Confirmação antes de excluir
-- Empty state quando não houver notícias
-
-## Entidade News
-
-Campos principais:
-
-- `id`
-- `title`
-- `slug`
-- `summary`
-- `content`
-- `category`
-- `status`
-- `image`
-- `published_at`
-- `created_at`
-- `updated_at`
-
-Regras principais:
-
-- `title`, `summary`, `content` e `category` são obrigatórios
-- `status` pode ser `draft` ou `published`
-- O status padrão é `draft`
-- O slug é gerado automaticamente a partir do título
-- O slug deve ser único
-- A imagem é opcional
-- Se `status` for `published` e `published_at` vier vazio, o sistema preenche com `now()`
-- Ao excluir uma notícia, a imagem associada deve ser removida do storage
+---
 
 ## Arquitetura
 
-O projeto usa **Action Pattern**.
+O projeto usa **Action Pattern**. Cada operação de negócio vive em sua própria classe dentro de `app/Actions/News/`, mantendo o controller responsável apenas por receber a request e devolver uma resposta.
 
-O controller deve apenas receber a request, chamar a Action correta e retornar uma view ou redirect.
-
-As regras de negócio ficam em:
-
-```text
-app/Actions/News
 ```
-
-Actions criadas:
-
-- `CreateNewsAction`
-- `UpdateNewsAction`
-- `DeleteNewsAction`
-- `GenerateNewsSlugAction`
-- `UploadNewsImageAction`
-- `SearchNewsAction`
-
-Estrutura principal:
-
-```text
 app/
 ├── Actions/News/
-├── Http/Controllers/NewsController.php
-├── Http/Requests/StoreNewsRequest.php
-├── Http/Requests/UpdateNewsRequest.php
+│   ├── CreateNewsAction.php
+│   ├── UpdateNewsAction.php
+│   ├── DeleteNewsAction.php
+│   ├── GenerateNewsSlugAction.php
+│   ├── UploadNewsImageAction.php
+│   └── SearchNewsAction.php
+├── Http/
+│   ├── Controllers/NewsController.php
+│   └── Requests/
+│       ├── StoreNewsRequest.php
+│       └── UpdateNewsRequest.php
 └── Models/News.php
 
 database/
 ├── factories/NewsFactory.php
 ├── migrations/
 └── seeders/NewsSeeder.php
-
-resources/views/
-├── layouts/app.blade.php
-└── news/
 ```
 
-## Rodando o Projeto
+**Por que Action Pattern?**
+Evita controllers gordos e Service classes genéricas. Cada Action tem uma responsabilidade única, é fácil de localizar e fácil de testar isoladamente.
 
-Suba os containers:
+---
 
-```bash
-./vendor/bin/sail up -d
-```
+## Pipeline de Qualidade
 
-Crie o `.env`, caso ainda não exista:
-
-```bash
-cp .env.example .env
-```
-
-Gere a chave da aplicação:
-
-```bash
-./vendor/bin/sail artisan key:generate
-```
-
-Rode as migrations e seeders:
-
-```bash
-./vendor/bin/sail artisan migrate --seed
-```
-
-Crie o link do storage:
-
-```bash
-./vendor/bin/sail artisan storage:link
-```
-
-Acesse:
-
-```text
-http://localhost/news
-```
-
-## Qualidade de Código
-
-Este projeto foi configurado para usar ferramentas que ajudam a manter o código consistente e a evitar que problemas simples avancem.
+Esse é o núcleo do projeto. Três ferramentas trabalhando em camadas:
 
 ### Laravel Pint
+Garante que o estilo do código PHP segue o padrão do Laravel. Roda automaticamente no pre-commit e no CI — se o código não estiver formatado, o commit é bloqueado.
 
-O Pint verifica e formata o estilo do código PHP.
+### PHPStan + Larastan
+Análise estática que encontra erros de tipo, retornos incorretos e uso indevido de arrays **antes** da execução. O Larastan estende o PHPStan para entender recursos específicos do Laravel como Models, Collections e Builders.
 
-Rodar em modo verificação:
+### PHPUnit
+Testes automatizados que validam o comportamento do sistema. A infraestrutura está pronta — factories, seeders e configuração de SQLite para o CI.
 
-```bash
-./vendor/bin/sail php ./vendor/bin/pint --test
-```
-
-Formatar o código:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/pint
-```
-
-Configuração:
-
-```text
-pint.json
-```
-
-O projeto usa o preset `laravel` e não força `declare(strict_types=1);` em todos os arquivos, para manter o padrão mais próximo do Laravel.
-
-### PHPStan e Larastan
-
-O PHPStan faz análise estática e encontra problemas antes da execução do código.
-
-Rodar:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-```
-
-Configuração:
-
-```text
-phpstan.neon
-```
-
-O Larastan foi adicionado para melhorar a leitura do código Laravel pelo PHPStan, especialmente em Models, Builders, Collections e recursos do framework.
-
-## Antes de Commitar
-
-Antes de criar um commit, o código deve passar pelos checks de qualidade:
-
-```bash
-make check
-```
-
-Esses comandos ajudam a evitar:
-
-- Código fora do padrão de formatação
-- Erros de tipo
-- Uso incorreto de arrays e retornos
-- Regressões em funcionalidades existentes
-- Commits que deixam o projeto quebrado sem perceber
-
-## Pre-commit Hook
-
-O projeto possui um hook versionado em:
-
-```text
-.github/.githooks/pre-commit
-```
-
-Ele roda automaticamente antes do commit:
-
-```bash
-make check
-```
-
-Se qualquer comando falhar, o commit é bloqueado.
-
-Para ativar o hook no clone local:
+### Pre-commit Hook
+Versionado em `.github/.githooks/pre-commit`. Bloqueia o commit localmente se qualquer check falhar. Para ativar após clonar:
 
 ```bash
 git config core.hooksPath .github/.githooks
 ```
 
-Como os comandos usam Laravel Sail, o Docker precisa estar rodando antes de commitar.
+### Commit-msg Hook
+Versionado em `.github/.githooks/commit-msg`. Valida a mensagem do commit antes de criá-lo usando **Commitlint**. Se a mensagem não seguir o padrão Conventional Commits, o commit é bloqueado com uma mensagem explicativa:
 
-## Conventional Commits e Commitlint
+```
+🔍 Validando mensagem de commit...
 
-O projeto usa Conventional Commits para manter o histórico do Git claro e fácil de revisar.
+ Commit inválido.
 
-Formato esperado:
+ Use o padrão Conventional Commits:
 
-```text
-tipo: descrição curta
+  feat: adiciona autenticação JWT
+  fix: corrige erro na criação de notícia
+  refactor: melhora organização das actions
+  chore: ajusta configuração do Docker
+  ci: adiciona pipeline do GitHub Actions
+
+  Tipos aceitos:
+  feat, fix, docs, style, refactor, test, chore, ci
 ```
 
-Exemplos válidos:
+O hook roda automaticamente ao commitar — nenhum comando extra necessário após ativar os hooks.
 
-```text
-feat: add news creation flow
-fix: correct image upload handling
-docs: update readme commands
-test: add news feature tests
-chore: configure commitlint
+### GitHub Actions
+CI configurado para rodar em todo `push` e `pull_request` nas branches `main` e `dev`. Se o pipeline falhar, o merge é bloqueado.
+
+---
+
+## Fluxo de Trabalho
+
+```
+dev → PR → CI passa → revisão → merge na main
 ```
 
-Exemplos inválidos:
-
-```text
-arrumei tudo
-update
-mudancas finais
-```
-
-A validação é feita pelo Commitlint, configurado em:
-
-```text
-commitlint.config.js
-```
-
-O hook responsável por bloquear mensagens inválidas fica em:
-
-```text
-.github/.githooks/commit-msg
-```
-
-Ele roda automaticamente durante o commit:
-
-```bash
-npx --no-install commitlint --edit "$1"
-```
-
-Se a mensagem não seguir o padrão, o commit é bloqueado.
-
-## GitHub Actions
-
-O projeto possui CI em:
-
-```text
-.github/workflows/ci.yml
-```
-
-Ele roda em `push` e `pull_request` para:
-
-- `main`
-- `dev`
-
-Checks executados no CI:
-
-```bash
-vendor/bin/pint --test
-vendor/bin/phpstan analyse
-php artisan test
-```
-
-No GitHub Actions, os testes usam SQLite. O workflow cria `database/database.sqlite`, roda as migrations e executa os testes.
-
-## Como Testar o Bloqueio de Qualidade
-
-O projeto deve permanecer sem erros conhecidos para permitir commits normais.
-
-Para testar se o PHPStan, o pre-commit e o GitHub Actions estão funcionando, crie uma falha temporária em uma branch de estudo e desfaça antes do commit final.
-
-Exemplo simples em uma Action:
-
-```php
-// Exemplo temporario apenas para testar o PHPStan.
-$title = $data['title'];
-$this->generateNewsSlugAction->execute($title);
-```
-
-Se o PHPStan não conseguir garantir que `$title` é uma string, ele pode apontar erro de tipo.
-
-Outro exemplo temporário:
-
-```php
-// Exemplo temporario apenas para testar o PHPStan.
-$data['image'] = $this->uploadNewsImageAction->execute($data['image'], null);
-```
-
-Se `image` não existir no array ou estiver tipado como `mixed`, o PHPStan deve apontar erro.
-
-Depois de criar a falha, rode:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-```
-
-Ou tente commitar normalmente:
-
-```bash
-git commit -m "Teste de bloqueio"
-```
-
-O commit deve ser bloqueado se algum check falhar.
-
-Depois do teste, desfaça a alteração temporária e rode novamente:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/pint --test
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-./vendor/bin/sail artisan test
-```
-
-Esse exercício demonstra que:
-
-- O PHPStan consegue encontrar problemas antes da execução
-- O pre-commit bloqueia commits quando algo falha
-- O GitHub Actions deixa problemas visíveis na branch ou no pull request
-- O código precisa voltar a um estado saudável antes de ser commitado
-
-O fluxo recomendado é não manter erros propositais no histórico principal. Use falhas temporárias apenas para estudo ou validação das ferramentas.
-
-## Branches
-
-Fluxo usado no estudo:
-
-- `main`: branch principal
-- `dev`: branch de desenvolvimento
-
-O fluxo esperado é trabalhar na `dev`, abrir pull request para `main` e usar os checks do GitHub Actions como proteção.
-
-## Próximos Passos
-
-Os próximos passos do projeto são focados em testes.
-
-Sugestões:
-
-- Criar testes unitários para as Actions
-- Criar testes de feature para o CRUD de notícias
-- Testar validações dos Form Requests
-- Testar geração de slug único
-- Testar upload e remoção de imagem com `Storage::fake()`
-- Testar filtros de busca e status
-- Testar paginação
-- Adicionar Pest como alternativa ao PHPUnit
-- Criar testes end-to-end com Playwright
-- Criar testes end-to-end com Selenium
-
-## Comandos Úteis
-
-Ver rotas:
-
-```bash
-./vendor/bin/sail artisan route:list --path=news
-```
-
-Rodar todos os checks locais:
+Antes de abrir qualquer PR, rode:
 
 ```bash
 make check
 ```
 
-Recriar banco com seed:
+Esse comando executa os três checks em sequência:
 
 ```bash
-./vendor/bin/sail artisan migrate:fresh --seed
+make lint      # verifica formatação com Pint
+make analyse   # roda PHPStan
+make test      # executa os testes
 ```
 
-Limpar caches:
+---
 
-```bash
-./vendor/bin/sail artisan optimize:clear
-```
+## Setup
 
-Subir Sail:
-
+**1. Suba o ambiente**
 ```bash
 ./vendor/bin/sail up -d
 ```
 
-Parar Sail:
-
+**2. Configure o `.env`**
 ```bash
-./vendor/bin/sail down
+cp .env.example .env
+./vendor/bin/sail artisan key:generate
 ```
+
+**3. Prepare o banco**
+```bash
+./vendor/bin/sail artisan migrate --seed
+./vendor/bin/sail artisan storage:link
+```
+
+**4. Ative o pre-commit hook**
+```bash
+git config core.hooksPath .github/.githooks
+```
+
+**5. Acesse**
+```
+http://localhost/news
+```
+
+---
+
+## Conventional Commits
+
+O projeto adota a convenção de commits para manter o histórico legível:
+
+```
+feat: adiciona filtro por categoria na listagem
+fix: corrige remoção de imagem ao deletar notícia
+refactor: extrai lógica de slug para GenerateNewsSlugAction
+test: adiciona testes de feature para criação de notícia
+chore: atualiza dependências do composer
+ci: adiciona threshold de coverage no GitHub Actions
+docs: atualiza README com fluxo de trabalho
+```
+
+---
+
+## Próximos Passos
+
+A base de qualidade está pronta. O próximo ciclo é fechar a cobertura de testes:
+
+- [ ] Testes unitários para cada Action
+- [ ] Testes de feature para o CRUD completo
+- [ ] Testar validações dos Form Requests
+- [ ] Testar geração de slug único com casos de borda
+- [ ] Testar upload e remoção de imagem com `Storage::fake()`
+- [ ] Testar filtros de busca e paginação
+- [ ] Migrar para Pest
+- [ ] Testes end-to-end com Playwright
+
+---
 
 ## Problemas Comuns
 
-Erro de tabela `news` inexistente:
-
-```text
-SQLSTATE[42S02]: Base table or view not found: 1146 Table 'laravel.news' doesn't exist
-```
-
-Solução:
-
+**Tabela `news` não existe**
 ```bash
 ./vendor/bin/sail artisan migrate
 ```
 
-Imagem não aparece após upload:
-
+**Imagem não aparece após upload**
 ```bash
 ./vendor/bin/sail artisan storage:link
 ```
 
-Docker parado:
-
-```text
-Docker or Podman is not running.
-```
-
-Solução: abra o Docker Desktop ou inicie o serviço Docker antes de rodar comandos com Sail.
+**Docker parado ao tentar commitar**
+O pre-commit hook usa Sail, então o Docker precisa estar rodando antes de commitar. Suba com `./vendor/bin/sail up -d`.
