@@ -408,6 +408,28 @@ git status
 
 Esse passo ajuda a manter o projeto consistente, evita subir codigo com problemas simples de tipo ou estilo e deixa o historico do Git mais organizado.
 
+## GitHub Actions
+
+O projeto possui um workflow de CI em:
+
+```text
+.github/workflows/ci.yml
+```
+
+Ele roda automaticamente em `push` e `pull_request` para as branches `main` e `dev`.
+
+O workflow executa:
+
+```bash
+vendor/bin/pint --test
+vendor/bin/phpstan analyse
+php artisan test
+```
+
+No GitHub Actions os testes usam SQLite, criando o arquivo `database/database.sqlite` durante o job e rodando as migrations antes de executar `php artisan test`.
+
+Observacao: enquanto existir algum erro proposital ou issue aberta relacionada ao PHPStan, o job de CI deve falhar na etapa `Run PHPStan`. Isso ajuda a deixar visivel no GitHub o que ainda precisa ser corrigido.
+
 ## Comandos Úteis
 
 Listar rotas de notícias:
