@@ -337,6 +337,53 @@ Testes que podem ser criados futuramente:
 - Testes end-to-end com Playwright
 - Testes end-to-end com Selenium
 
+## Analise Estatica com PHPStan
+
+O projeto esta preparado para usar PHPStan como ferramenta de analise estatica.
+
+O PHPStan ajuda a encontrar problemas no codigo antes da execucao, como tipos incorretos, chamadas invalidas e possiveis erros em classes, metodos e retornos.
+
+Arquivo de configuracao:
+
+```text
+phpstan.neon
+```
+
+O arquivo esta configurado inicialmente para analisar:
+
+```text
+app
+database
+routes
+```
+
+Tambem foi adicionada a configuracao abaixo no `phpstan.neon`:
+
+```yaml
+universalObjectCratesClasses:
+    - Illuminate\Database\Eloquent\Model
+```
+
+Ela foi usada porque os Models do Laravel Eloquent trabalham com atributos dinamicos, como `title`, `slug`, `status`, `published_at` e outros campos que existem no banco, mas nao aparecem declarados diretamente como propriedades PHP na classe.
+
+Sem essa configuracao, o PHPStan pode apontar falsos positivos ao acessar propriedades dinamicas de Models, mesmo quando elas fazem parte da tabela e estao corretas para o Laravel.
+
+Neste projeto de estudo, essa configuracao deixa a analise estatica mais amigavel para o padrao do Eloquent. Em projetos maiores, uma alternativa mais rigorosa seria documentar propriedades com PHPDoc, usar Larastan de forma mais completa ou criar tipos especificos para os dados das Actions.
+
+Se o PHPStan ainda nao estiver instalado, finalize a instalacao pelo Laravel Sail:
+
+```bash
+./vendor/bin/sail composer update phpstan/phpstan --with-dependencies
+```
+
+Depois, execute a analise com:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+```
+
+Observacao: se aparecer a mensagem `Docker or Podman is not running.`, abra o Docker Desktop ou inicie o servico Docker antes de rodar os comandos.
+
 ## Comandos Úteis
 
 Listar rotas de notícias:
