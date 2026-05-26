@@ -16,6 +16,35 @@ Projeto de estudo em Laravel 13 com foco em qualidade de código e boas prática
 - PHPStan + Larastan
 - Laravel Pint
 - PHPUnit
+- Playwright
+
+---
+
+## Comandos Principais
+
+```bash
+./vendor/bin/sail up -d          # sobe o ambiente
+./vendor/bin/sail artisan migrate --seed
+./vendor/bin/sail artisan storage:link
+git config core.hooksPath .github/.githooks
+```
+
+```bash
+make lint       # verifica formatação com Pint
+make analyse    # roda PHPStan
+make test       # executa PHPUnit
+make e2e        # executa Playwright
+make e2e-report # abre o relatório HTML do Playwright
+make check      # roda lint, analyse, test e e2e
+```
+
+```bash
+npm run e2e         # Playwright headless
+npm run e2e:headed  # Playwright com navegador visível
+npm run e2e:report  # abre o relatório HTML
+npm run e2e:ui      # Playwright UI
+npx playwright test --ui
+```
 
 ---
 
@@ -63,6 +92,9 @@ Análise estática que encontra erros de tipo, retornos incorretos e uso indevid
 ### PHPUnit
 Testes automatizados que validam o comportamento do sistema. A infraestrutura está pronta — factories, seeders e configuração de SQLite para o CI.
 
+### Playwright
+Testes end-to-end que validam o fluxo no navegador real. Os cenários ficam em `tests/e2e` e usam `playwright.config.js`.
+
 ### Pre-commit Hook
 Versionado em `.github/.githooks/pre-commit`. Bloqueia o commit localmente se qualquer check falhar. Para ativar após clonar:
 
@@ -109,12 +141,19 @@ Antes de abrir qualquer PR, rode:
 make check
 ```
 
-Esse comando executa os três checks em sequência:
+Esse comando executa os quatro checks em sequência:
 
 ```bash
 make lint      # verifica formatação com Pint
 make analyse   # roda PHPStan
 make test      # executa os testes
+make e2e       # executa Playwright
+```
+
+Para validar o fluxo no navegador:
+
+```bash
+make e2e
 ```
 
 ---
@@ -143,10 +182,125 @@ cp .env.example .env
 git config core.hooksPath .github/.githooks
 ```
 
-**5. Acesse**
+**5. Antes de commitar, mantenha a aplicação rodando**
+```bash
+./vendor/bin/sail up -d
+```
+
+O pre-commit executa `make check`, incluindo Playwright. Por isso, a aplicação precisa estar acessível para os testes E2E.
+
+**6. Acesse**
 ```
 http://localhost/news
 ```
+
+---
+
+## Playwright
+
+Os testes E2E ficam em:
+
+```text
+tests/e2e
+```
+
+Por padrão, eles usam:
+
+```text
+http://localhost
+```
+
+Para usar outra URL:
+
+```bash
+PLAYWRIGHT_BASE_URL=http://localhost:8080 npm run e2e
+```
+
+Antes de rodar:
+
+```bash
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --seed
+```
+
+Depois:
+
+```bash
+npm run e2e
+```
+
+Para abrir o modo interativo do Playwright:
+
+```bash
+npx playwright test --ui
+```
+
+### Como escrever testes E2E neste projeto
+
+Os testes devem evitar depender dos dados gerados pelo seeder. Prefira criar os próprios dados durante o fluxo do teste, usando valores únicos:
+
+```js
+const suffix = Date.now();
+const title = `Noticia E2E ${suffix}`;
+```
+
+Também prefira seletores acessíveis e estáveis:
+
+```js
+page.getByRole('link', { name: 'Nova noticia' });
+page.getByLabel('Titulo');
+page.getByPlaceholder('Buscar por titulo');
+```
+
+Evite seletores frágeis como:
+
+```js
+page.locator('tr:nth-child(8)');
+```
+
+Quando precisar interagir com uma linha específica da tabela, filtre pelo texto criado no próprio teste:
+
+```js
+const row = page.getByRole('row').filter({ hasText: title });
+await row.getByRole('link', { name: 'Editar' }).click();
+```
+
+Para ações com `confirm()`, registre o listener do diálogo antes do clique:
+
+```js
+page.once('dialog', async (dialog) => {
+    await dialog.accept();
+});
+```
+
+Essa abordagem deixa os testes mais fáceis de entender, menos dependentes da ordem da tabela e mais úteis para quem for evoluir o projeto.
+
+Para abrir o relatório do último teste:
+
+```bash
+npm run e2e:report
+```
+
+---
+
+## Release
+
+As notas da primeira release ficam em:
+
+```text
+docs/releases/v0.1.0.md
+```
+
+Para criar a release no GitHub e anexar o vídeo de demonstração:
+
+```bash
+gh release create v0.1.0 \
+  --title "v0.1.0 - Laravel News CRUD com Action Pattern" \
+  --notes-file docs/releases/v0.1.0.md \
+  "/Users/gregorifranco/Desktop/Gravação de Tela 2026-05-26 às 14.21.43.mov#demo-news-crud-playwright.mov"
+```
+
+Se preferir pela interface do GitHub, crie uma release com a tag `v0.1.0`, cole o conteúdo de `docs/releases/v0.1.0.md` e anexe o vídeo como asset.
 
 ---
 
