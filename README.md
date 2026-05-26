@@ -1,43 +1,55 @@
-# Laravel News CRUD - Projeto de Estudo
+# Laravel News CRUD - Estudo de Qualidade e Testes
 
-Este projeto é uma aplicação Laravel criada para estudo de arquitetura, organização de código e preparação para testes futuros.
+Este projeto é um estudo em Laravel para praticar arquitetura, organização de código e fluxo de qualidade antes de evoluir para uma suíte completa de testes.
 
-O objetivo principal é implementar um CRUD de notícias/artigos usando o padrão **Action Pattern**, mantendo controllers finos, regras de negócio isoladas em Actions e uma estrutura fácil de testar com PHPUnit, Pest, Playwright e Selenium.
+O sistema implementa um CRUD de notícias/artigos usando **Action Pattern**. A ideia é manter controllers finos, regras de negócio em Actions e uma base preparada para PHPUnit, Pest, Playwright e Selenium.
 
-> Este projeto não tem objetivo de produção. Ele foi criado como material de aprendizado e prática.
+> Este projeto é didático. As ferramentas de qualidade existem para demonstrar como PHPStan, Pint, hooks de Git e GitHub Actions ajudam a impedir que código problemático avance sem visibilidade.
 
-## Tecnologias
+## Objetivo
+
+O objetivo não é apenas criar o CRUD, mas estudar um fluxo de desenvolvimento com qualidade:
+
+- Separar responsabilidades com Action Pattern
+- Validar entrada com Form Requests
+- Manter regras de negócio fora do controller
+- Usar análise estática com PHPStan/Larastan
+- Usar formatação com Laravel Pint
+- Bloquear commits quando checks falharem
+- Rodar validações no GitHub Actions
+- Preparar o projeto para testes automatizados futuros
+
+## Stack
 
 - PHP 8.3+
 - Laravel 13
-- MySQL via Laravel Sail
+- Laravel Sail
+- MySQL no ambiente local com Sail
+- SQLite no GitHub Actions
 - Blade
 - Tailwind CSS via CDN
-- Laravel Eloquent
-- Laravel Form Requests
-- Laravel Storage
-- Laravel Factories e Seeders
+- PHPStan/Larastan
+- Laravel Pint
+- PHPUnit
 
-## Funcionalidades
+## Funcionalidades do CRUD
 
-- Listar notícias
-- Criar notícia
-- Editar notícia
-- Excluir notícia
-- Buscar notícias por título
-- Filtrar notícias por status
+- Listagem de notícias
+- Criação de notícia
+- Edição de notícia
+- Exclusão de notícia
+- Busca por título
+- Filtro por status
 - Paginação
 - Upload de imagem
-- Preview da imagem no formulário
+- Preview de imagem no formulário
 - Mensagens de sucesso e erro
 - Confirmação antes de excluir
 - Empty state quando não houver notícias
 
 ## Entidade News
 
-A entidade principal do projeto é `News`.
-
-Campos:
+Campos principais:
 
 - `id`
 - `title`
@@ -51,390 +63,318 @@ Campos:
 - `created_at`
 - `updated_at`
 
-## Regras de Negócio
+Regras principais:
 
-- `title` é obrigatório
-- `summary` é obrigatório
-- `content` é obrigatório
-- `category` é obrigatório
+- `title`, `summary`, `content` e `category` são obrigatórios
 - `status` pode ser `draft` ou `published`
-- `status` padrão é `draft`
-- `slug` é gerado automaticamente a partir do título
-- `slug` deve ser único
-- `image` é opcional
-- `published_at` só é usado quando a notícia está publicada
+- O status padrão é `draft`
+- O slug é gerado automaticamente a partir do título
+- O slug deve ser único
+- A imagem é opcional
 - Se `status` for `published` e `published_at` vier vazio, o sistema preenche com `now()`
-- Ao excluir uma notícia, a imagem vinculada é removida do storage
-- Ao trocar uma imagem, a imagem antiga é removida do storage
+- Ao excluir uma notícia, a imagem associada deve ser removida do storage
 
 ## Arquitetura
 
 O projeto usa **Action Pattern**.
 
-A ideia é deixar o controller responsável apenas pelo fluxo HTTP:
+O controller deve apenas receber a request, chamar a Action correta e retornar uma view ou redirect.
 
-1. Receber a request
-2. Chamar a Action adequada
-3. Retornar uma view ou redirect
-
-As regras de negócio ficam dentro de classes de Action em:
+As regras de negócio ficam em:
 
 ```text
 app/Actions/News
 ```
 
-## Estrutura Principal
+Actions criadas:
+
+- `CreateNewsAction`
+- `UpdateNewsAction`
+- `DeleteNewsAction`
+- `GenerateNewsSlugAction`
+- `UploadNewsImageAction`
+- `SearchNewsAction`
+
+Estrutura principal:
 
 ```text
 app/
-├── Actions/
-│   └── News/
-│       ├── CreateNewsAction.php
-│       ├── DeleteNewsAction.php
-│       ├── GenerateNewsSlugAction.php
-│       ├── SearchNewsAction.php
-│       ├── UpdateNewsAction.php
-│       └── UploadNewsImageAction.php
-├── Http/
-│   ├── Controllers/
-│   │   └── NewsController.php
-│   └── Requests/
-│       ├── StoreNewsRequest.php
-│       └── UpdateNewsRequest.php
-└── Models/
-    └── News.php
+├── Actions/News/
+├── Http/Controllers/NewsController.php
+├── Http/Requests/StoreNewsRequest.php
+├── Http/Requests/UpdateNewsRequest.php
+└── Models/News.php
 
 database/
-├── factories/
-│   └── NewsFactory.php
+├── factories/NewsFactory.php
 ├── migrations/
-│   └── 2026_05_26_000000_create_news_table.php
-└── seeders/
-    └── NewsSeeder.php
+└── seeders/NewsSeeder.php
 
-resources/
-└── views/
-    ├── layouts/
-    │   └── app.blade.php
-    └── news/
-        ├── _form.blade.php
-        ├── create.blade.php
-        ├── edit.blade.php
-        └── index.blade.php
+resources/views/
+├── layouts/app.blade.php
+└── news/
 ```
 
-## Actions
+## Rodando o Projeto
 
-### `CreateNewsAction`
-
-Responsável por criar uma notícia.
-
-Ela:
-
-- Recebe os dados validados
-- Gera o slug automaticamente
-- Faz upload da imagem, se existir
-- Define `published_at` quando necessário
-- Cria o registro dentro de uma transaction
-
-### `UpdateNewsAction`
-
-Responsável por atualizar uma notícia.
-
-Ela:
-
-- Atualiza os dados principais
-- Regenera o slug se o título mudar
-- Troca a imagem se uma nova for enviada
-- Remove a imagem antiga quando necessário
-- Define `published_at` quando necessário
-- Executa a atualização dentro de uma transaction
-
-### `DeleteNewsAction`
-
-Responsável por excluir uma notícia.
-
-Ela:
-
-- Remove a imagem do storage, se existir
-- Exclui o registro do banco
-
-### `GenerateNewsSlugAction`
-
-Responsável por gerar um slug único a partir do título.
-
-Exemplo:
-
-```text
-minha-noticia
-minha-noticia-2
-minha-noticia-3
-```
-
-### `UploadNewsImageAction`
-
-Responsável pelo upload da imagem.
-
-Ela usa o disk `public` do Laravel Storage.
-
-### `SearchNewsAction`
-
-Responsável pela listagem com filtros.
-
-Ela:
-
-- Busca por título
-- Filtra por status
-- Ordena pelos registros mais recentes
-- Retorna resultado paginado
-
-## Rotas
-
-As rotas ficam em:
-
-```text
-routes/web.php
-```
-
-Rotas disponíveis:
-
-```text
-GET     /news
-GET     /news/create
-POST    /news
-GET     /news/{news}/edit
-PUT     /news/{news}
-DELETE  /news/{news}
-```
-
-A rota `/` redireciona para `/news`.
-
-## Pré-requisitos
-
-Antes de iniciar, tenha instalado:
-
-- Docker
-- Docker Compose
-
-O projeto usa Laravel Sail, então não é obrigatório ter PHP, Composer ou MySQL instalados diretamente na máquina.
-
-## Passo a Passo para Rodar com Laravel Sail
-
-### 1. Instalar dependências
-
-Se ainda não tiver a pasta `vendor`, rode:
+Suba os containers:
 
 ```bash
-docker run --rm \
-    -u "$(id -u):$(id -g)" \
-    -v "$(pwd):/var/www/html" \
-    -w /var/www/html \
-    laravelsail/php85-composer:latest \
-    composer install --ignore-platform-reqs
+./vendor/bin/sail up -d
 ```
 
-Se o `vendor` já existir, pode pular esta etapa.
-
-### 2. Criar o arquivo `.env`
+Crie o `.env`, caso ainda não exista:
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Subir os containers
-
-```bash
-./vendor/bin/sail up -d
-```
-
-### 4. Gerar a chave da aplicação
+Gere a chave da aplicação:
 
 ```bash
 ./vendor/bin/sail artisan key:generate
 ```
 
-### 5. Rodar as migrations
+Rode as migrations e seeders:
 
 ```bash
-./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan migrate --seed
 ```
 
-### 6. Rodar os seeders
-
-```bash
-./vendor/bin/sail artisan db:seed
-```
-
-Ou rode apenas o seeder de notícias:
-
-```bash
-./vendor/bin/sail artisan db:seed --class=NewsSeeder
-```
-
-### 7. Criar o link público do storage
+Crie o link do storage:
 
 ```bash
 ./vendor/bin/sail artisan storage:link
 ```
 
-Esse comando é necessário para exibir as imagens enviadas no formulário.
-
-### 8. Acessar a aplicação
-
-Abra no navegador:
+Acesse:
 
 ```text
 http://localhost/news
 ```
 
-## Recriar o Banco do Zero
+## Qualidade de Código
 
-Se quiser apagar todas as tabelas e popular novamente:
+Este projeto foi configurado para usar ferramentas que ajudam a manter o código consistente e a evitar que problemas simples avancem.
 
-```bash
-./vendor/bin/sail artisan migrate:fresh --seed
-```
+### Laravel Pint
 
-Depois, garanta o link do storage:
+O Pint verifica e formata o estilo do código PHP.
 
-```bash
-./vendor/bin/sail artisan storage:link
-```
-
-## Comandos Artisan Usados como Base
-
-Estes são os comandos que poderiam ser usados para gerar a base dos arquivos:
+Rodar em modo verificação:
 
 ```bash
-./vendor/bin/sail artisan make:model News -mfs
-./vendor/bin/sail artisan make:controller NewsController
-./vendor/bin/sail artisan make:request StoreNewsRequest
-./vendor/bin/sail artisan make:request UpdateNewsRequest
+./vendor/bin/sail php ./vendor/bin/pint --test
 ```
 
-As Actions foram criadas manualmente, pois o Laravel não possui um generator padrão para esse padrão arquitetural.
-
-## Testes Futuros
-
-Este projeto ainda não possui testes implementados.
-
-Mesmo assim, a estrutura foi pensada para facilitar testes futuros:
-
-- Actions pequenas e com responsabilidade única
-- Controller fino
-- Validação separada em Form Requests
-- Factory para gerar dados de teste
-- Seeder para popular dados iniciais
-- Regras de negócio fora do Model
-- Upload usando Storage, facilitando `Storage::fake()` em testes
-
-Testes que podem ser criados futuramente:
-
-- Testes unitários para Actions
-- Testes de feature para rotas do CRUD
-- Testes com Pest
-- Testes com PHPUnit
-- Testes end-to-end com Playwright
-- Testes end-to-end com Selenium
-
-## Analise Estatica com PHPStan
-
-O projeto esta preparado para usar PHPStan como ferramenta de analise estatica.
-
-O PHPStan ajuda a encontrar problemas no codigo antes da execucao, como tipos incorretos, chamadas invalidas e possiveis erros em classes, metodos e retornos.
-
-Arquivo de configuracao:
-
-```text
-phpstan.neon
-```
-
-O arquivo esta configurado inicialmente para analisar:
-
-```text
-app
-database
-routes
-```
-
-Tambem foi adicionada a configuracao abaixo no `phpstan.neon`:
-
-```yaml
-universalObjectCratesClasses:
-    - Illuminate\Database\Eloquent\Model
-```
-
-Ela foi usada porque os Models do Laravel Eloquent trabalham com atributos dinamicos, como `title`, `slug`, `status`, `published_at` e outros campos que existem no banco, mas nao aparecem declarados diretamente como propriedades PHP na classe.
-
-Sem essa configuracao, o PHPStan pode apontar falsos positivos ao acessar propriedades dinamicas de Models, mesmo quando elas fazem parte da tabela e estao corretas para o Laravel.
-
-Neste projeto de estudo, essa configuracao deixa a analise estatica mais amigavel para o padrao do Eloquent. Em projetos maiores, uma alternativa mais rigorosa seria documentar propriedades com PHPDoc, usar Larastan de forma mais completa ou criar tipos especificos para os dados das Actions.
-
-Se o PHPStan ainda nao estiver instalado, finalize a instalacao pelo Laravel Sail:
-
-```bash
-./vendor/bin/sail composer update phpstan/phpstan --with-dependencies
-```
-
-Depois, execute a analise com:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-```
-
-Observacao: se aparecer a mensagem `Docker or Podman is not running.`, abra o Docker Desktop ou inicie o servico Docker antes de rodar os comandos.
-
-## Antes de Commitar
-
-Antes de criar um commit, rode os comandos abaixo para avaliar erros e formatar o codigo.
-
-Analise estatica com PHPStan:
-
-```bash
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-```
-
-Formatacao com Laravel Pint:
+Formatar o código:
 
 ```bash
 ./vendor/bin/sail php ./vendor/bin/pint
 ```
 
-Depois confira os arquivos alterados:
+Configuração:
 
-```bash
-git status
+```text
+pint.json
 ```
 
-Esse passo ajuda a manter o projeto consistente, evita subir codigo com problemas simples de tipo ou estilo e deixa o historico do Git mais organizado.
+O projeto usa o preset `laravel` e não força `declare(strict_types=1);` em todos os arquivos, para manter o padrão mais próximo do Laravel.
+
+### PHPStan e Larastan
+
+O PHPStan faz análise estática e encontra problemas antes da execução do código.
+
+Rodar:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+```
+
+Configuração:
+
+```text
+phpstan.neon
+```
+
+O Larastan foi adicionado para melhorar a leitura do código Laravel pelo PHPStan, especialmente em Models, Builders, Collections e recursos do framework.
+
+## Antes de Commitar
+
+Antes de criar um commit, o código deve passar pelos checks de qualidade:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/pint --test
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+./vendor/bin/sail artisan test
+```
+
+Esses comandos ajudam a evitar:
+
+- Código fora do padrão de formatação
+- Erros de tipo
+- Uso incorreto de arrays e retornos
+- Regressões em funcionalidades existentes
+- Commits que deixam o projeto quebrado sem perceber
+
+## Pre-commit Hook
+
+O projeto possui um hook versionado em:
+
+```text
+.github/.githooks/pre-commit
+```
+
+Ele roda automaticamente antes do commit:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/pint --test
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+./vendor/bin/sail artisan test
+```
+
+Se qualquer comando falhar, o commit é bloqueado.
+
+Para ativar o hook no clone local:
+
+```bash
+git config core.hooksPath .github/.githooks
+```
+
+Como os comandos usam Laravel Sail, o Docker precisa estar rodando antes de commitar.
+
+## GitHub Actions
+
+O projeto possui CI em:
+
+```text
+.github/workflows/ci.yml
+```
+
+Ele roda em `push` e `pull_request` para:
+
+- `main`
+- `dev`
+
+Checks executados no CI:
+
+```bash
+vendor/bin/pint --test
+vendor/bin/phpstan analyse
+php artisan test
+```
+
+No GitHub Actions, os testes usam SQLite. O workflow cria `database/database.sqlite`, roda as migrations e executa os testes.
+
+## Como Testar o Bloqueio de Qualidade
+
+O projeto deve permanecer sem erros conhecidos para permitir commits normais.
+
+Para testar se o PHPStan, o pre-commit e o GitHub Actions estão funcionando, crie uma falha temporária em uma branch de estudo e desfaça antes do commit final.
+
+Exemplo simples em uma Action:
+
+```php
+// Exemplo temporario apenas para testar o PHPStan.
+$title = $data['title'];
+$this->generateNewsSlugAction->execute($title);
+```
+
+Se o PHPStan não conseguir garantir que `$title` é uma string, ele pode apontar erro de tipo.
+
+Outro exemplo temporário:
+
+```php
+// Exemplo temporario apenas para testar o PHPStan.
+$data['image'] = $this->uploadNewsImageAction->execute($data['image'], null);
+```
+
+Se `image` não existir no array ou estiver tipado como `mixed`, o PHPStan deve apontar erro.
+
+Depois de criar a falha, rode:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+```
+
+Ou tente commitar normalmente:
+
+```bash
+git commit -m "Teste de bloqueio"
+```
+
+O commit deve ser bloqueado se algum check falhar.
+
+Depois do teste, desfaça a alteração temporária e rode novamente:
+
+```bash
+./vendor/bin/sail php ./vendor/bin/pint --test
+./vendor/bin/sail php ./vendor/bin/phpstan analyse
+./vendor/bin/sail artisan test
+```
+
+Esse exercício demonstra que:
+
+- O PHPStan consegue encontrar problemas antes da execução
+- O pre-commit bloqueia commits quando algo falha
+- O GitHub Actions deixa problemas visíveis na branch ou no pull request
+- O código precisa voltar a um estado saudável antes de ser commitado
+
+O fluxo recomendado é não manter erros propositais no histórico principal. Use falhas temporárias apenas para estudo ou validação das ferramentas.
+
+## Branches
+
+Fluxo usado no estudo:
+
+- `main`: branch principal
+- `dev`: branch de desenvolvimento
+
+O fluxo esperado é trabalhar na `dev`, abrir pull request para `main` e usar os checks do GitHub Actions como proteção.
+
+## Próximos Passos
+
+Os próximos passos do projeto são focados em testes.
+
+Sugestões:
+
+- Criar testes unitários para as Actions
+- Criar testes de feature para o CRUD de notícias
+- Testar validações dos Form Requests
+- Testar geração de slug único
+- Testar upload e remoção de imagem com `Storage::fake()`
+- Testar filtros de busca e status
+- Testar paginação
+- Adicionar Pest como alternativa ao PHPUnit
+- Criar testes end-to-end com Playwright
+- Criar testes end-to-end com Selenium
 
 ## Comandos Úteis
 
-Listar rotas de notícias:
+Ver rotas:
 
 ```bash
 ./vendor/bin/sail artisan route:list --path=news
 ```
 
-Limpar cache:
+Recriar banco com seed:
+
+```bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+Limpar caches:
 
 ```bash
 ./vendor/bin/sail artisan optimize:clear
 ```
 
-Abrir shell dentro do container:
-
-```bash
-./vendor/bin/sail shell
-```
-
-Rodar o servidor Sail:
+Subir Sail:
 
 ```bash
 ./vendor/bin/sail up -d
 ```
 
-Parar os containers:
+Parar Sail:
 
 ```bash
 ./vendor/bin/sail down
@@ -442,9 +382,7 @@ Parar os containers:
 
 ## Problemas Comuns
 
-### Erro: tabela `news` não existe
-
-Mensagem comum:
+Erro de tabela `news` inexistente:
 
 ```text
 SQLSTATE[42S02]: Base table or view not found: 1146 Table 'laravel.news' doesn't exist
@@ -456,47 +394,16 @@ Solução:
 ./vendor/bin/sail artisan migrate
 ```
 
-Se quiser recriar tudo:
-
-```bash
-./vendor/bin/sail artisan migrate:fresh --seed
-```
-
-### Imagem não aparece após upload
-
-Provavelmente falta criar o link simbólico do storage.
-
-Rode:
+Imagem não aparece após upload:
 
 ```bash
 ./vendor/bin/sail artisan storage:link
 ```
 
-### Docker não está rodando
-
-Se aparecer:
+Docker parado:
 
 ```text
 Docker or Podman is not running.
 ```
 
-Abra o Docker Desktop ou inicie o serviço Docker e rode novamente:
-
-```bash
-./vendor/bin/sail up -d
-```
-
-## Observação sobre o Estudo
-
-Este projeto foi criado para praticar organização de código em Laravel.
-
-O foco não é criar a menor quantidade possível de arquivos, mas sim separar responsabilidades de forma clara:
-
-- Requests validam
-- Controllers coordenam o fluxo HTTP
-- Actions executam regras de negócio
-- Models representam os dados
-- Migrations definem a estrutura do banco
-- Factories e Seeders ajudam na preparação para testes e dados de exemplo
-
-Essa separação deixa o projeto mais fácil de entender, manter e testar.
+Solução: abra o Docker Desktop ou inicie o serviço Docker antes de rodar comandos com Sail.

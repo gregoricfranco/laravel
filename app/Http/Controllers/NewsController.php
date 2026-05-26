@@ -17,7 +17,10 @@ class NewsController extends Controller
 {
     public function index(Request $request, SearchNewsAction $searchNewsAction): View
     {
-        $news = $searchNewsAction->execute($request->only(['query', 'status']));
+        /** @var array<string, mixed> $filters */
+        $filters = $request->only(['query', 'status']);
+
+        $news = $searchNewsAction->execute($filters);
 
         return view('news.index', compact('news'));
     }
