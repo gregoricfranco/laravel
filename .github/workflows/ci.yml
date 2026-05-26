@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+
   pull_request:
     branches:
       - main
@@ -31,7 +32,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, dom, fileinfo, pdo_sqlite
           coverage: none
 
@@ -42,6 +43,7 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          mkdir -p database
           touch database/database.sqlite
           php artisan migrate --force
 
