@@ -2,13 +2,6 @@
 
 set -e
 
-echo "Running Pint..."
-./vendor/bin/sail php ./vendor/bin/pint --test
-
-echo "Running PHPStan..."
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-
-echo "Running tests..."
-./vendor/bin/sail artisan test
+make check
 
 echo "Pre-commit checks passed."
