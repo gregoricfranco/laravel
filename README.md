@@ -204,9 +204,7 @@ O Larastan foi adicionado para melhorar a leitura do código Laravel pelo PHPSta
 Antes de criar um commit, o código deve passar pelos checks de qualidade:
 
 ```bash
-./vendor/bin/sail php ./vendor/bin/pint --test
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-./vendor/bin/sail artisan test
+make check
 ```
 
 Esses comandos ajudam a evitar:
@@ -228,9 +226,7 @@ O projeto possui um hook versionado em:
 Ele roda automaticamente antes do commit:
 
 ```bash
-./vendor/bin/sail php ./vendor/bin/pint --test
-./vendor/bin/sail php ./vendor/bin/phpstan analyse
-./vendor/bin/sail artisan test
+make check
 ```
 
 Se qualquer comando falhar, o commit é bloqueado.
@@ -354,6 +350,12 @@ Ver rotas:
 
 ```bash
 ./vendor/bin/sail artisan route:list --path=news
+```
+
+Rodar todos os checks locais:
+
+```bash
+make check
 ```
 
 Recriar banco com seed:
