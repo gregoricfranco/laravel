@@ -32,6 +32,79 @@ O objetivo não é apenas criar o CRUD, mas estudar um fluxo de desenvolvimento 
 - Laravel Pint
 - PHPUnit
 
+## Comandos Principais
+
+Subir o ambiente:
+
+```bash
+./vendor/bin/sail up -d
+```
+
+Instalar dependências PHP:
+
+```bash
+./vendor/bin/sail composer install
+```
+
+Preparar banco e storage:
+
+```bash
+./vendor/bin/sail artisan migrate --seed
+./vendor/bin/sail artisan storage:link
+```
+
+Rodar todos os checks de qualidade:
+
+```bash
+make check
+```
+
+Rodar cada check separadamente:
+
+```bash
+make lint
+make analyse
+make test
+```
+
+Ativar o hook de Git que bloqueia commits quebrados:
+
+```bash
+git config core.hooksPath .github/.githooks
+```
+
+Instalar dependências JavaScript, incluindo Commitlint:
+
+```bash
+npm install
+```
+
+Fluxo recomendado antes de abrir PR:
+
+```bash
+make check
+git status
+git add .
+git commit -m "feat: describe the change"
+git push
+```
+
+Padrão de mensagem recomendado para commits:
+
+```text
+feat: add news creation flow
+fix: correct image upload handling
+docs: update project documentation
+test: add news feature tests
+chore: update project tooling
+```
+
+Exemplo de mensagem bloqueada pelo Commitlint:
+
+```text
+arrumei umas coisas
+```
+
 ## Funcionalidades do CRUD
 
 - Listagem de notícias
@@ -238,6 +311,54 @@ git config core.hooksPath .github/.githooks
 ```
 
 Como os comandos usam Laravel Sail, o Docker precisa estar rodando antes de commitar.
+
+## Conventional Commits e Commitlint
+
+O projeto usa Conventional Commits para manter o histórico do Git claro e fácil de revisar.
+
+Formato esperado:
+
+```text
+tipo: descrição curta
+```
+
+Exemplos válidos:
+
+```text
+feat: add news creation flow
+fix: correct image upload handling
+docs: update readme commands
+test: add news feature tests
+chore: configure commitlint
+```
+
+Exemplos inválidos:
+
+```text
+arrumei tudo
+update
+mudancas finais
+```
+
+A validação é feita pelo Commitlint, configurado em:
+
+```text
+commitlint.config.js
+```
+
+O hook responsável por bloquear mensagens inválidas fica em:
+
+```text
+.github/.githooks/commit-msg
+```
+
+Ele roda automaticamente durante o commit:
+
+```bash
+npx --no-install commitlint --edit "$1"
+```
+
+Se a mensagem não seguir o padrão, o commit é bloqueado.
 
 ## GitHub Actions
 
