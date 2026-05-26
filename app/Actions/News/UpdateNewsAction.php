@@ -12,8 +12,7 @@ class UpdateNewsAction
     public function __construct(
         private readonly GenerateNewsSlugAction $generateNewsSlugAction,
         private readonly UploadNewsImageAction $uploadNewsImageAction,
-    ) {
-    }
+    ) {}
 
     public function execute(News $news, array $data): News
     {
