@@ -35,7 +35,7 @@ make analyse    # roda PHPStan
 make test       # executa PHPUnit
 make e2e        # executa Playwright
 make e2e-report # abre o relatório HTML do Playwright
-make check      # roda lint, analyse e test
+make check      # roda lint, analyse, test e e2e
 ```
 
 ```bash
@@ -141,12 +141,13 @@ Antes de abrir qualquer PR, rode:
 make check
 ```
 
-Esse comando executa os três checks em sequência:
+Esse comando executa os quatro checks em sequência:
 
 ```bash
 make lint      # verifica formatação com Pint
 make analyse   # roda PHPStan
 make test      # executa os testes
+make e2e       # executa Playwright
 ```
 
 Para validar o fluxo no navegador:
@@ -181,7 +182,14 @@ cp .env.example .env
 git config core.hooksPath .github/.githooks
 ```
 
-**5. Acesse**
+**5. Antes de commitar, mantenha a aplicação rodando**
+```bash
+./vendor/bin/sail up -d
+```
+
+O pre-commit executa `make check`, incluindo Playwright. Por isso, a aplicação precisa estar acessível para os testes E2E.
+
+**6. Acesse**
 ```
 http://localhost/news
 ```

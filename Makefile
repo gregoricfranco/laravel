@@ -18,4 +18,4 @@ e2e-headed:
 e2e-report:
 	npm run e2e:report
 
-check: lint analyse test
+check: lint analyse test e2e
