@@ -3,6 +3,7 @@
 namespace App\Actions\News;
 
 use App\Models\News;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -13,18 +14,27 @@ class CreateNewsAction
         private readonly UploadNewsImageAction $uploadNewsImageAction,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public function execute(array $data): News
     {
         return DB::transaction(function () use ($data) {
+            $image = $data['image'] ?? null;
+            $title = $data['title'] ?? '';
+
             $data['status'] = $data['status'] ?? 'draft';
-            $data['slug'] = $this->generateNewsSlugAction->execute($data['title']);
-            $data['image'] = $this->uploadNewsImageAction->execute($data['image'] ?? null);
+            $data['slug'] = $this->generateNewsSlugAction->execute(is_string($title) ? $title : '');
+            $data['image'] = $this->uploadNewsImageAction->execute($image instanceof UploadedFile ? $image : null);
 
             if ($data['status'] === 'published' && empty($data['published_at'])) {
                 $data['published_at'] = now();
             }
 
-            return News::create(Arr::except($data, ['image_remove']));
+            /** @var array<string, mixed> $attributes */
+            $attributes = Arr::except($data, ['image_remove']);
+
+            return News::create($attributes);
         });
     }
 }

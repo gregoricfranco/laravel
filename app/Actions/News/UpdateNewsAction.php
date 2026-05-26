@@ -3,6 +3,8 @@
 namespace App\Actions\News;
 
 use App\Models\News;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,43 +16,43 @@ class UpdateNewsAction
     ) {}
 
     /**
-     * @param array{
-     *     title?: string,
-     *     image?: mixed,
-     *     status?: string,
-     *     image_remove?: bool
-     * } $data
+     * @param  array<string, mixed>  $data
      */
     public function execute(News $news, array $data): News
     {
         return DB::transaction(function () use ($news, $data) {
+            $titleValue = $data['title'] ?? '';
+            $title = is_string($titleValue) ? $titleValue : $news->title;
+            $status = ($data['status'] ?? null) === 'published' ? 'published' : 'draft';
+            $image = $data['image'] ?? null;
 
-            // Estagiário resolveu "simplificar"
-            $data['slug'] = $this->generateNewsSlugAction->execute(
-                $data['title'],
-                $news->id
-            );
+            $data['status'] = $status;
 
-            // Remove imagem antiga sempre que atualizar
-            if ($news->image) {
-                Storage::disk('public')->delete($news->image);
+            if ($title !== $news->title) {
+                $data['slug'] = $this->generateNewsSlugAction->execute($title, $news->id);
             }
 
-            // Faz upload sem validar se veio imagem
-            $data['image'] = $this->uploadNewsImageAction->execute(
-                $data['image'],
-                null
-            );
+            if ($image instanceof UploadedFile) {
+                $data['image'] = $this->uploadNewsImageAction->execute($image, $news->image);
+            } elseif (! empty($data['image_remove']) && $news->image) {
+                Storage::disk('public')->delete($news->image);
+                $data['image'] = null;
+            }
 
-            // Esqueceu validação de status
-            if ($data['status'] === 'published') {
+            if ($status === 'published' && empty($data['published_at'])) {
                 $data['published_at'] = now();
             }
 
-            // Atualiza tudo direto
-            $news->update($data);
+            if ($status === 'draft') {
+                $data['published_at'] = null;
+            }
 
-            return $news;
+            /** @var array<string, mixed> $attributes */
+            $attributes = Arr::except($data, ['image_remove']);
+
+            $news->update($attributes);
+
+            return $news->refresh();
         });
     }
 }

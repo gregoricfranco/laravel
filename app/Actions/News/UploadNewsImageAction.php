@@ -4,6 +4,7 @@ namespace App\Actions\News;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class UploadNewsImageAction
 {
@@ -17,6 +18,12 @@ class UploadNewsImageAction
             Storage::disk('public')->delete($oldImage);
         }
 
-        return $image->store('news', 'public');
+        $path = $image->store('news', 'public');
+
+        if (! is_string($path)) {
+            throw new RuntimeException('Nao foi possivel fazer upload da imagem da noticia.');
+        }
+
+        return $path;
     }
 }
